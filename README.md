@@ -13,7 +13,7 @@ The BEAM framework offers a structured approach to modeling emotions in LLMs thr
 
 ## Components
 
-### 1. BEAM Model (`beammodel.py`)
+### 1. BEAM Model (`source/beammodel.py`)
 
 The core implementation of the BEAM framework as a Pydantic model, including:
 
@@ -22,7 +22,7 @@ The core implementation of the BEAM framework as a Pydantic model, including:
 - Emotion state representation and manipulation
 - Methods for blending emotional profiles
 
-### 2. Emotional Prompt Generator (`emotional_prompt_generator.py`)
+### 2. Emotional Prompt Generator (`source/emotional_prompt_generator.py`)
 
 Transforms BEAM emotional states into natural language system prompts by:
 
@@ -31,7 +31,7 @@ Transforms BEAM emotional states into natural language system prompts by:
 - Generating contextual adaptation rules
 - Producing complete system prompts
 
-### 3. Emotional Agent (`emotional_agent.py`)
+### 3. Emotional Agent (`source/emotional_agent.py`)
 
 A class for managing LLM emotional states with features for:
 
@@ -50,8 +50,8 @@ Example of integrating the emotional framework with OpenAI's API to create an in
 
 ```python
 # Import the components
-from beammodel import BEAMProfile, EmotionState, EmotionSpectrum
-from emotional_prompt_generator import generate_emotional_prompt
+from source.beammodel import BEAMProfile, EmotionState, EmotionSpectrum
+from source.emotional_prompt_generator import generate_emotional_prompt
 
 # Create an emotional profile
 profile = BEAMProfile(
@@ -67,7 +67,8 @@ print(prompt)
 ### Using the Emotional Agent
 
 ```python
-from emotional_agent import EmotionalAgent
+from source.beammodel import BEAMProfile
+from source.emotional_agent import EmotionalAgent
 
 # Create an agent with an initial profile
 agent = EmotionalAgent(
@@ -103,14 +104,28 @@ python integration_with_llm.py --model gpt-3.5-turbo
 1. Clone the repository
 2. Install the required dependencies:
    ```bash
-   pip install pydantic openai numpy
+   pip install -r requirements.txt
    ```
+
+## Running Tests
+
+The project uses pytest for testing. To run the tests:
+
+```bash
+python -m pytest
+```
+
+For more verbose output:
+
+```bash
+python -m pytest -v
+```
 
 ## Examples
 
 The repository includes several examples:
 
-- `example_usage.py`: Demonstrates creating emotional profiles and generating prompts
+- `emotional_prompt_generator_demo.py`: Demonstrates creating emotional profiles and generating prompts
 - `integration_with_llm.py`: Shows how to create an interactive chatbot with emotional awareness
 
 ## License

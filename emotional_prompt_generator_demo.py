@@ -8,8 +8,8 @@ and generate corresponding prompts for LLM agents.
 
 import json
 import os
-from beammodel import BEAMProfile, EmotionState, EmotionSpectrum
-from emotional_prompt_generator import generate_emotional_prompt
+from source.beammodel import BEAMProfile, EmotionState, EmotionSpectrum
+from source.emotional_prompt_generator import generate_emotional_prompt
 
 
 def save_prompt_to_file(prompt, filename):

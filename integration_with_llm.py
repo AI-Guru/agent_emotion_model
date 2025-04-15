@@ -18,12 +18,12 @@ import time
 import logging
 import argparse
 from typing import Dict, List, Any, Optional, Tuple
-import openai
+from openai import OpenAI
 import dotenv
 
 # Import our modules
-from beammodel import BEAMProfile, EmotionState, EmotionSpectrum
-from emotional_agent import EmotionalAgent
+from source.beammodel import BEAMProfile, EmotionState, EmotionSpectrum
+from source.emotional_agent import EmotionalAgent
 
 # Load environment variables from .env file
 dotenv.load_dotenv()
@@ -60,10 +60,11 @@ class EmotionalChatBot:
             max_tokens: Maximum tokens in responses
         """
         # Initialize OpenAI client
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        if not openai.api_key:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
             raise ValueError("OPENAI_API_KEY environment variable must be set")
         
+        self.client = OpenAI(api_key=api_key)
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -117,7 +118,7 @@ class EmotionalChatBot:
             ]
             
             # Get emotional analysis from the model
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=analysis_prompt,
                 temperature=0.2,  # Lower temperature for more consistent analysis
@@ -176,7 +177,7 @@ class EmotionalChatBot:
             api_messages = [{"role": "system", "content": system_prompt}] + self.messages
             
             # Generate response
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=api_messages,
                 temperature=self.temperature,

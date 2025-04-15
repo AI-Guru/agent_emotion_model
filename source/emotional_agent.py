@@ -12,8 +12,8 @@ import logging
 from typing import Dict, List, Any, Optional, Union, Callable
 
 # Import BEAM model
-from beammodel import BEAMProfile, EmotionState, EmotionSpectrum
-from emotional_prompt_generator import generate_emotional_prompt
+from source.beammodel import BEAMProfile, EmotionState, EmotionSpectrum
+from source.emotional_prompt_generator import generate_emotional_prompt
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

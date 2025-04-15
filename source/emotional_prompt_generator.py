@@ -15,7 +15,7 @@ from typing import Dict, List, Tuple, Any, Optional
 import logging
 
 # Import the BEAM model
-from beammodel import BEAMProfile, EmotionState, EmotionSpectrum
+from source.beammodel import BEAMProfile, EmotionState, EmotionSpectrum
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
