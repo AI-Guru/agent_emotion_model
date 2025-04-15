@@ -4,7 +4,7 @@
 
 This repository implements the Behavioral Emotion Analysis Model (BEAM) for Large Language Models as described in the paper by Edward Y. Chang. It provides a complete framework for modeling, managing, and integrating emotional states into LLM-powered agents.
 
-This implementation is also inspired by the paper ["An Emotion Model for Autonomous Agents"](https://arxiv.org/abs/2404.13071) by Tristan Behrens.
+This implementation is also inspired by the paper ["Modeling Emotions with Large Language Models"](https://arxiv.org/abs/2404.13071) by Edward Y. Chang.
 
 ## Overview
 
