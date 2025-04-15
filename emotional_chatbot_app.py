@@ -37,14 +37,16 @@ logger = logging.getLogger(__name__)
 
 
 class EmotionalChatBot:
-    """A chatbot that uses EmotionalAgent to manage its emotional state."""
+    """A chatbot that uses EmotionalAgent to manage its emotional state with weighted history."""
     
     def __init__(
         self,
         initial_profile: BEAMProfile = None,
-        model_name: str = "gpt-3.5-turbo",
+        model_name: str = "gpt-4.1-mini-2025-04-14",
         temperature: float = 0.7,
-        max_tokens: int = 500
+        max_tokens: int = 500,
+        emotion_decay_factor: float = 0.8,  # How much to weight older emotions (0-1)
+        max_emotion_history: int = 5        # Maximum number of previous emotions to consider
     ):
         """
         Initialize the EmotionalChatBot.
@@ -54,6 +56,8 @@ class EmotionalChatBot:
             model_name: OpenAI model to use (e.g., "gpt-4", "gpt-3.5-turbo")
             temperature: Temperature parameter for generation
             max_tokens: Maximum tokens in responses
+            emotion_decay_factor: How much to weight older emotions (0-1)
+            max_emotion_history: Maximum number of previous emotions to consider
         """
         # Initialize OpenAI client
         api_key = os.getenv("OPENAI_API_KEY")
@@ -64,6 +68,11 @@ class EmotionalChatBot:
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
+        
+        # Emotional memory parameters
+        self.emotion_decay_factor = max(0.0, min(1.0, emotion_decay_factor))
+        self.max_emotion_history = max(1, max_emotion_history)
+        self.emotion_history = []  # List of (timestamp, emotion_dict) tuples
         
         # Create the emotional agent with a friendly, helpful baseline
         if initial_profile is None:
@@ -145,6 +154,9 @@ class EmotionalChatBot:
             for key, value in emotions.items():
                 emotions[key] = max(-1.0, min(1.0, float(value)))
             
+            # Add to emotional history with current timestamp
+            self.add_to_emotion_history(emotions)
+            
             logger.info(f"Emotion analysis: {emotions}")
             return emotions
             
@@ -152,12 +164,68 @@ class EmotionalChatBot:
             logger.error(f"Error analyzing emotions: {e}")
             return {}
     
-    def respond(self, user_message: str) -> Tuple[str, Dict[str, Any]]:
+    def add_to_emotion_history(self, emotions: Dict[str, float]) -> None:
+        """
+        Add emotions to the history with current timestamp.
+        
+        Args:
+            emotions: Dictionary of emotion intensities
+        """
+        # Add current emotions to history with timestamp
+        current_time = time.time()
+        self.emotion_history.append((current_time, emotions))
+        
+        # Limit the history size
+        if len(self.emotion_history) > self.max_emotion_history:
+            self.emotion_history = self.emotion_history[-self.max_emotion_history:]
+    
+    def calculate_weighted_emotions(self) -> Dict[str, float]:
+        """
+        Calculate weighted emotions based on history with decay.
+        
+        Returns:
+            Dictionary of weighted emotion intensities
+        """
+        if not self.emotion_history:
+            return {}
+        
+        # Initialize result with zeros
+        all_emotion_keys = set()
+        for _, emotions in self.emotion_history:
+            all_emotion_keys.update(emotions.keys())
+        
+        result = {key: 0.0 for key in all_emotion_keys}
+        
+        # Calculate weights for each history entry
+        total_weight = 0.0
+        current_weight = 1.0  # Most recent has weight 1.0
+        
+        # Process from most recent to oldest
+        for _, emotions in reversed(self.emotion_history):
+            # Apply weights to each emotion
+            for key, value in emotions.items():
+                result[key] += value * current_weight
+            
+            # Track total weight applied
+            total_weight += current_weight
+            
+            # Decay weight for older entries
+            current_weight *= self.emotion_decay_factor
+        
+        # Normalize by total weight
+        if total_weight > 0:
+            for key in result:
+                result[key] /= total_weight
+        
+        return result
+    
+    def respond(self, user_message: str, chat_history: List = None) -> Tuple[str, Dict[str, Any]]:
         """
         Generate a response to the user message.
         
         Args:
             user_message: The user's message
+            chat_history: Optional chat history from the UI
             
         Returns:
             Tuple of (assistant's response, emotional state info)
@@ -166,17 +234,34 @@ class EmotionalChatBot:
             # Analyze emotions in the user message
             user_emotions = self.analyze_emotions(user_message)
             
-            # Update agent's emotional state
-            self.agent.update_emotional_state(emotion_adjustments=user_emotions)
+            # Calculate weighted emotions from history
+            weighted_emotions = self.calculate_weighted_emotions()
+            
+            # Log the weighted emotions
+            logger.info(f"Weighted emotions across conversation: {weighted_emotions}")
+            
+            # Update agent's emotional state with weighted emotions
+            # This gives a more stable emotional response that considers conversation history
+            self.agent.update_emotional_state(emotion_adjustments=weighted_emotions)
             
             # Get the current system prompt
             system_prompt = self.agent.get_system_prompt()
             
-            # Add user message to history
-            self.messages.append({"role": "user", "content": user_message})
+            # Prepare messages for API call, starting with the system prompt
+            api_messages = [{"role": "system", "content": system_prompt}]
             
-            # Prepare messages for API call
-            api_messages = [{"role": "system", "content": system_prompt}] + self.messages
+            # Add chat history if provided (from the UI)
+            if chat_history:
+                # Convert the UI history format to OpenAI API format
+                for message in chat_history:
+                    if isinstance(message, dict) and "role" in message and "content" in message:
+                        api_messages.append(message)
+            
+            # Add the current user message
+            api_messages.append({"role": "user", "content": user_message})
+            
+            # Update our internal history
+            self.messages = api_messages.copy()
             
             # Generate response
             response = self.client.chat.completions.create(
@@ -189,7 +274,7 @@ class EmotionalChatBot:
             # Extract response text
             assistant_message = response.choices[0].message.content
             
-            # Add assistant message to history
+            # Add assistant message to our internal history
             self.messages.append({"role": "assistant", "content": assistant_message})
             
             # Get emotion state information for display
@@ -199,7 +284,7 @@ class EmotionalChatBot:
             self.agent.record_interaction(
                 user_message=user_message,
                 agent_response=assistant_message,
-                detected_user_emotions=user_emotions
+                detected_user_emotions=weighted_emotions  # Use weighted emotions
             )
             
             return assistant_message, emotion_info
@@ -287,7 +372,7 @@ def create_emotion_chart(emotion_values):
     
     # Update layout
     fig.update_layout(
-        title="Emotional State Spectrum",
+        title="Conversation Emotional Profile",
         yaxis=dict(
             title="Intensity",
             range=[-1, 1]
@@ -309,8 +394,11 @@ def create_process_message_handler(bot):
         if not user_message.strip():
             return "", history, None, ""
         
-        # Get response and emotion state
-        response, emotion_info = bot.respond(user_message)
+        # Convert history to a list if it's not already (for safety)
+        history_list = list(history) if history else []
+        
+        # Get response and emotion state - pass the chat history
+        response, emotion_info = bot.respond(user_message, history_list)
         
         # Generate chart from emotion values
         emotion_chart = create_emotion_chart(emotion_info.get("emotion_values", {}))
@@ -352,7 +440,7 @@ def create_reset_chat_handler(bot):
             showarrow=False,
             font=dict(size=14)
         )
-        fig.update_layout(title="Emotional State")
+        fig.update_layout(title="Conversation Emotional Profile")
         
         # Return empty list for the chat history
         # Empty list for the messages format
@@ -396,9 +484,9 @@ def create_ui(bot):
             
             with gr.Column(scale=1):
                 # Emotion visualization
-                gr.Markdown("## Agent's Emotional State")
+                gr.Markdown("## Conversation Emotional Profile")
                 # Use gr.Plot which works with Plotly figures in Gradio 5.x
-                emotion_chart = gr.Plot(label="Emotional State")
+                emotion_chart = gr.Plot(label="Weighted Emotional Profile")
                 dominant_emotions = gr.Markdown("Dominant emotions: None")
         
         # Event handlers
@@ -427,21 +515,26 @@ def main():
     """Run the Gradio application."""
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Emotional chatbot with Gradio UI")
-    parser.add_argument("--model", type=str, default="gpt-3.5-turbo", help="OpenAI model to use")
+    parser.add_argument("--model", type=str, default="gpt-4.1-mini-2025-04-14", help="OpenAI model to use")
     parser.add_argument("--temp", type=float, default=0.7, help="Temperature for generation")
     parser.add_argument("--share", action="store_true", help="Create a shareable link")
+    parser.add_argument("--decay", type=float, default=0.8, help="Emotion decay factor (0-1)")
+    parser.add_argument("--history", type=int, default=5, help="Number of messages to consider for emotion")
+    parser.add_argument("--server-name", type=str, default="127.0.0.1", help="The IP address to bind the server to")
     
     args = parser.parse_args()
     
     # Create the chatbot
     bot = EmotionalChatBot(
         model_name=args.model,
-        temperature=args.temp
+        temperature=args.temp,
+        emotion_decay_factor=args.decay,
+        max_emotion_history=args.history
     )
     
     # Create and launch the UI
     app = create_ui(bot)
-    app.launch(share=args.share)
+    app.launch(server_name=args.server_name, share=args.share)
 
 
 if __name__ == "__main__":

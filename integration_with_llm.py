@@ -228,7 +228,7 @@ def interactive_chat():
     
     # Create a parser for command-line arguments
     parser = argparse.ArgumentParser(description="Interactive chat with an emotionally aware AI assistant")
-    parser.add_argument("--model", type=str, default="gpt-3.5-turbo", help="OpenAI model to use")
+    parser.add_argument("--model", type=str, default="gpt-4.1-mini-2025-04-14", help="OpenAI model to use")
     parser.add_argument("--profile", type=str, help="Path to a JSON file with initial emotional profile")
     parser.add_argument("--temperature", type=float, default=0.7, help="Temperature for response generation")
     
