@@ -427,13 +427,12 @@ def create_emotion_chart(emotion_values):
             emotion_name = EMOTION_MAPPINGS[getattr(EmotionSpectrum, spectrum_name.upper())][intensity]
             
             # Determine text style - bolder and black for the closest emotion to current value
-            is_active = abs(current_value - intensity) <= abs(closest_intensity - intensity) + 0.01
-            text_color = 'black' if is_active else 'rgba(100,100,100,0.7)'
-            text_size = 12 if is_active else 10
+            text_color = 'black'
+            text_size = 12
             
             fig.add_annotation(
                 x=intensity,
-                y=current_y + 0.3,  # Position above the line
+                y=current_y + 0.2,  # Position above the line
                 text=emotion_name,
                 showarrow=False,
                 font=dict(color=text_color, size=text_size, family="Arial"),
@@ -452,7 +451,7 @@ def create_emotion_chart(emotion_values):
             tickvals=intensities,
             ticktext=[""] * len(intensities),  # Empty strings for tick labels
             range=[-1.1, 1.1],
-            tickfont={'size': 0}  # Make tick labels invisible
+            tickfont={'size': 1, 'color': 'rgba(0,0,0,0)'}  # Invisible tick labels
         ),
         yaxis=dict(
             showticklabels=False,
@@ -464,26 +463,6 @@ def create_emotion_chart(emotion_values):
         showlegend=False,  # Hide the legend completely
         annotations=[]  # Start with empty annotations list to avoid duplicates
     )
-    
-    # Add nicely formatted spectrum labels on the left
-    for i, spectrum_name in enumerate(spectra_order):
-        # Get the current emotion for this spectrum for better labeling
-        current_val = emotion_values.get(spectrum_name, 0)
-        current_intensity_levels = list(EMOTION_MAPPINGS[getattr(EmotionSpectrum, spectrum_name.upper())].keys())
-        closest_intensity = min(current_intensity_levels, key=lambda x: abs(x - current_val))
-        current_emotion = EMOTION_MAPPINGS[getattr(EmotionSpectrum, spectrum_name.upper())][closest_intensity]
-        
-        label = spectrum_name.replace("_", "-").title()
-        
-        fig.add_annotation(
-            x=-1.1,
-            y=y_positions[i],
-            text=label,
-            showarrow=False,
-            font=dict(size=14, color="black"),
-            xanchor="left",
-            align="left"
-        )
     
     # Add gray gridlines at each intensity value
     for intensity in intensities:
