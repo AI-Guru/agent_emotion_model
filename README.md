@@ -210,4 +210,4 @@ MIT
 
 ## Acknowledgments
 
-Based on the research paper "Behavioral Emotion Analysis Model for Large Language Models" by Edward Y. Chang, Stanford University. https://arxiv.org/pdf/2404.13071
+Based on the research paper "Modeling Emotions with Large Language Models" by Edward Y. Chang, Stanford University. [https://arxiv.org/pdf/2404.13071](https://arxiv.org/html/2404.13071v2)
