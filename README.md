@@ -92,10 +92,8 @@ system_prompt = agent.get_system_prompt()
 Run the interactive chat example:
 
 ```bash
-# Set your OpenAI API key
-export OPENAI_API_KEY=your_api_key_here
-
-# Run the interactive chat
+# Make sure you've set up your .env file with your OpenAI API key
+# Then run the interactive chat
 python integration_with_llm.py --model gpt-3.5-turbo
 ```
 
@@ -105,6 +103,13 @@ python integration_with_llm.py --model gpt-3.5-turbo
 2. Install the required dependencies:
    ```bash
    pip install -r requirements.txt
+   ```
+3. Set up environment variables:
+   - Copy `example.env` to `.env`
+   - Replace the placeholder API key with your actual OpenAI API key
+   ```bash
+   cp example.env .env
+   # Edit .env file with your API key
    ```
 
 ## Running Tests
@@ -126,7 +131,28 @@ python -m pytest -v
 The repository includes several examples:
 
 - `emotional_prompt_generator_demo.py`: Demonstrates creating emotional profiles and generating prompts
-- `integration_with_llm.py`: Shows how to create an interactive chatbot with emotional awareness
+- `integration_with_llm.py`: Shows how to create an interactive command-line chatbot with emotional awareness
+- `emotional_chatbot_app.py`: Provides a web interface for the emotional chatbot using Gradio
+
+### Running the Web Interface
+
+To run the Gradio web interface:
+
+```bash
+# Make sure you've set up your .env file with your OpenAI API key
+python emotional_chatbot_app.py --model gpt-3.5-turbo
+```
+
+For additional options:
+
+```bash
+python emotional_chatbot_app.py --help
+```
+
+The web interface displays:
+- A chat interface for conversing with the AI
+- A graph showing the emotional state across all spectra
+- A summary of the dominant emotions
 
 ## License
 
