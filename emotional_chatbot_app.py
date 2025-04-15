@@ -339,8 +339,9 @@ def format_message_for_display(message):
 
 
 def create_emotion_chart(emotion_values):
-    """Create a bar chart of the emotion values using Plotly."""
+    """Create a BEAM emotion chart similar to beam.jpg using Plotly."""
     import plotly.graph_objects as go
+    from source.beammodel import EMOTION_MAPPINGS, EmotionSpectrum
     
     if not emotion_values:
         # Return empty chart if no values
@@ -350,38 +351,158 @@ def create_emotion_chart(emotion_values):
             showarrow=False,
             font=dict(size=14)
         )
-        fig.update_layout(title="Emotional State")
+        fig.update_layout(title="BEAM Emotional Profile")
         return fig
     
-    # Extract data from emotional state
-    labels = list(emotion_values.keys())
-    # Make the labels more readable
-    labels = [label.replace("_", "-") for label in labels]
-    values = list(emotion_values.values())
+    # Define the intensity values that match beam.jpg
+    intensities = [-1.0, -0.6, -0.3, 0.0, 0.3, 0.6, 1.0]
+    intensity_labels = [str(i) for i in intensities]
     
-    # Create color list - negative values in red, positive in green
-    colors = ["red" if v < 0 else "green" for v in values]
+    # Define BEAM spectrum colors - made more vibrant and closer to beam.jpg
+    spectrum_colors = {
+        "fear_courage": "rgba(255, 80, 80, 0.8)",         # Brighter Red
+        "sadness_joy": "rgba(255, 180, 60, 0.8)",        # Brighter Orange
+        "distrust_trust": "rgba(255, 255, 60, 0.8)",     # Brighter Yellow
+        "negligence_anticipation": "rgba(100, 255, 100, 0.8)",  # Brighter Green
+        "anger_peace": "rgba(80, 200, 255, 0.8)",        # Sky Blue
+        "disgust_delight": "rgba(100, 100, 255, 0.8)",   # Brighter Blue
+        "disinterest_fascination": "rgba(180, 100, 255, 0.8)"  # Brighter Purple
+    }
     
-    # Create the figure
+    # Create a figure
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=labels,
-        y=values,
-        marker_color=colors
-    ))
+    
+    # Define the order of spectra to match beam.jpg
+    spectra_order = [
+        "fear_courage", 
+        "sadness_joy", 
+        "distrust_trust", 
+        "negligence_anticipation", 
+        "anger_peace", 
+        "disgust_delight", 
+        "disinterest_fascination"
+    ]
+    
+    # Add horizontal bars for each spectrum with markers at current value
+    y_positions = []
+    current_y = 7
+    
+    for spectrum_name in spectra_order:
+        current_y -= 1
+        y_positions.append(current_y)
+        
+        # Get the current value for this spectrum
+        current_value = emotion_values.get(spectrum_name, 0)
+        
+        # Add a line representing the spectrum
+        fig.add_trace(go.Scatter(
+            x=intensities,
+            y=[current_y] * len(intensities),
+            mode='lines',
+            line=dict(color=spectrum_colors[spectrum_name], width=12),
+            name=spectrum_name.replace('_', '-'),
+            showlegend=False
+        ))
+        
+        # Add marker for current value
+        fig.add_trace(go.Scatter(
+            x=[current_value],
+            y=[current_y],
+            mode='markers',
+            marker=dict(color='black', size=14, line=dict(color='white', width=2)),
+            name=f"Current: {spectrum_name.replace('_', '-')}",
+            showlegend=False
+        ))
+        
+        # Get the current emotion name for this spectrum
+        current_intensity_levels = list(EMOTION_MAPPINGS[getattr(EmotionSpectrum, spectrum_name.upper())].keys())
+        closest_intensity = min(current_intensity_levels, key=lambda x: abs(x - current_value))
+        current_emotion = EMOTION_MAPPINGS[getattr(EmotionSpectrum, spectrum_name.upper())][closest_intensity]
+        
+        # Add spectrum title with current emotion
+        formatted_name = spectrum_name.replace("_", "-").title()
+        
+        # Add emotion words for each position
+        for i, intensity in enumerate(intensities):
+            emotion_name = EMOTION_MAPPINGS[getattr(EmotionSpectrum, spectrum_name.upper())][intensity]
+            
+            # Determine text style - bolder and black for the closest emotion to current value
+            is_active = abs(current_value - intensity) <= abs(closest_intensity - intensity) + 0.01
+            text_color = 'black' if is_active else 'rgba(100,100,100,0.7)'
+            text_size = 12 if is_active else 10
+            
+            fig.add_annotation(
+                x=intensity,
+                y=current_y + 0.3,  # Position above the line
+                text=emotion_name,
+                showarrow=False,
+                font=dict(color=text_color, size=text_size, family="Arial"),
+                xanchor='center',
+                yanchor='bottom'
+            )
     
     # Update layout
     fig.update_layout(
-        title="Conversation Emotional Profile",
-        yaxis=dict(
-            title="Intensity",
-            range=[-1, 1]
-        ),
+        title={
+            'text': "BEAM Emotional Profile",
+            'font': {'size': 22}
+        },
         xaxis=dict(
-            tickangle=45
+            title="Intensity",
+            titlefont={'size': 14},
+            tickvals=intensities,
+            ticktext=intensity_labels,
+            range=[-1.1, 1.1],
+            tickfont={'size': 12}
         ),
-        height=400
+        yaxis=dict(
+            showticklabels=False,
+            range=[-0.5, 7.5]
+        ),
+        height=700,  # Increased height
+        margin=dict(l=20, r=20, t=60, b=50),
+        plot_bgcolor='white',
+        legend=dict(
+            orientation="h", 
+            yanchor="bottom", 
+            y=1.02, 
+            xanchor="right", 
+            x=1,
+            font=dict(size=12)
+        ),
+        annotations=[]  # Start with empty annotations list to avoid duplicates
     )
+    
+    # Add nicely formatted spectrum labels on the left
+    for i, spectrum_name in enumerate(spectra_order):
+        # Get the current emotion for this spectrum for better labeling
+        current_val = emotion_values.get(spectrum_name, 0)
+        current_intensity_levels = list(EMOTION_MAPPINGS[getattr(EmotionSpectrum, spectrum_name.upper())].keys())
+        closest_intensity = min(current_intensity_levels, key=lambda x: abs(x - current_val))
+        current_emotion = EMOTION_MAPPINGS[getattr(EmotionSpectrum, spectrum_name.upper())][closest_intensity]
+        
+        label = spectrum_name.replace("_", "-").title()
+        
+        fig.add_annotation(
+            x=-1.1,
+            y=y_positions[i],
+            text=label,
+            showarrow=False,
+            font=dict(size=14, color="black"),
+            xanchor="left",
+            align="left"
+        )
+    
+    # Add gray gridlines at each intensity value
+    for intensity in intensities:
+        fig.add_shape(
+            type="line",
+            x0=intensity,
+            x1=intensity,
+            y0=-0.5,
+            y1=7.5,
+            line=dict(color="rgba(200,200,200,0.5)", width=1, dash="dot")
+        )
     
     return fig
 
@@ -440,7 +561,7 @@ def create_reset_chat_handler(bot):
             showarrow=False,
             font=dict(size=14)
         )
-        fig.update_layout(title="Conversation Emotional Profile")
+        fig.update_layout(title="BEAM Emotional Profile")
         
         # Return empty list for the chat history
         # Empty list for the messages format
@@ -486,7 +607,7 @@ def create_ui(bot):
                 # Emotion visualization
                 gr.Markdown("## Conversation Emotional Profile")
                 # Use gr.Plot which works with Plotly figures in Gradio 5.x
-                emotion_chart = gr.Plot(label="Weighted Emotional Profile")
+                emotion_chart = gr.Plot(label="BEAM Emotional Profile")
                 dominant_emotions = gr.Markdown("Dominant emotions: None")
         
         # Event handlers
