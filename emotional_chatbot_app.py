@@ -448,12 +448,11 @@ def create_emotion_chart(emotion_values):
             'font': {'size': 22}
         },
         xaxis=dict(
-            title="Intensity",
-            titlefont={'size': 14},
+            title="",  # Remove the "Intensity" title
             tickvals=intensities,
-            ticktext=intensity_labels,
+            ticktext=[""] * len(intensities),  # Empty strings for tick labels
             range=[-1.1, 1.1],
-            tickfont={'size': 12}
+            tickfont={'size': 0}  # Make tick labels invisible
         ),
         yaxis=dict(
             showticklabels=False,
@@ -462,14 +461,7 @@ def create_emotion_chart(emotion_values):
         height=700,  # Increased height
         margin=dict(l=20, r=20, t=60, b=50),
         plot_bgcolor='white',
-        legend=dict(
-            orientation="h", 
-            yanchor="bottom", 
-            y=1.02, 
-            xanchor="right", 
-            x=1,
-            font=dict(size=12)
-        ),
+        showlegend=False,  # Hide the legend completely
         annotations=[]  # Start with empty annotations list to avoid duplicates
     )
     
